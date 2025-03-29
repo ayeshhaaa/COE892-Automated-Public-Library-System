@@ -10,7 +10,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +31,10 @@ class ReturnRequest(BaseModel):
 class RenewRequest(BaseModel):
     user_id: int
     book_id: int
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 # -------------------------------
 # API Endpoints
@@ -161,9 +165,9 @@ async def get_my_books(user_id: int):
 
 #User Login
 @app.post("/login/")
-async def login(username: str, password: str):
+async def login(request: LoginRequest):
     async with aiosqlite.connect(DATABASE) as db:
-        cursor = await db.execute("SELECT UserID, UserName, Password FROM Users WHERE UserName = ?", (username,))
+        cursor = await db.execute("SELECT UserID, UserName, Password FROM Users WHERE UserName = ?", (request.username,))
         user = await cursor.fetchone()
 
         if not user:
@@ -171,7 +175,7 @@ async def login(username: str, password: str):
 
         actualPassword = user[2] #password from db
         #compare passwords
-        if actualPassword != password:
+        if actualPassword != request.password:
             raise HTTPException(status_code=401, detail="Invalid username or password.")
 
         return {"message": "Login successful", "user_id": user[0]}
