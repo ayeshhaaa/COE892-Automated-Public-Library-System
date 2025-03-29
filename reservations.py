@@ -158,3 +158,20 @@ async def get_my_books(user_id: int):
         """, (user_id,))
         books = await cursor.fetchall()
         return [{"book_name": row[0], "borrow_date": row[1], "due_date": row[2]} for row in books]
+
+#User Login
+@app.post("/login/")
+async def login(username: str, password: str):
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT UserID, UserName, Password FROM Users WHERE UserName = ?", (username,))
+        user = await cursor.fetchone()
+
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+        actualPassword = user[2] #password from db
+        #compare passwords
+        if actualPassword != password:
+            raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+        return {"message": "Login successful", "user_id": user[0]}
