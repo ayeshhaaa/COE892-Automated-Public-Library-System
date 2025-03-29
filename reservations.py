@@ -163,6 +163,19 @@ async def get_my_books(user_id: int):
         books = await cursor.fetchall()
         return [{"book_name": row[0], "borrow_date": row[1], "due_date": row[2]} for row in books]
 
+#all users
+@app.get("/users/")
+async def get_all_users():
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT UserID, UserName, Password FROM Users")
+        user = await cursor.fetchall()
+
+        return [{
+            "user_id": user[0],
+            "username": user[1],
+            "password": user[2]
+        }]
+
 @app.get("/users/{username}")
 async def get_user_by_username(username: str):
     async with aiosqlite.connect(DATABASE) as db:
