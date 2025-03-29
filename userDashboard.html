@@ -109,6 +109,16 @@
                 const books_list=document.getElementById("booksList");
                 books_list.innerHTML='';
 
+                //change table headers to match all books
+                document.querySelector("thead").innerHTML = `
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Author</th>
+                    <th>Genre</th>
+                    <th>Year</th>
+                </tr>`;
+
                 books.forEach(book => {
                     const row = `<tr>
                         <td>${book.book_id}</td>
@@ -139,6 +149,50 @@
             function logOut() {
                 sessionStorage.removeItem("username");
                 window.location.href = 'index.html';
+            }
+
+            async function viewMyBooks() {
+                const username = sessionStorage.getItem("username");
+
+                try {
+                    const userResponse = await fetch(`http://127.0.0.1:8000/users/${username}`);
+                    const userData = await userResponse.json();
+                    const userId = userData.user_id;
+
+                    const booksResponse = await fetch(`http://127.0.0.1:8000/mybooks/${userId}`);
+                    if (!booksResponse.ok) {
+                        throw new Error("Failed to fetch borrowed books.");
+                    }
+                    const borrowedBooks = await booksResponse.json();
+
+                    //change table headers to match borrowed books
+                    document.querySelector("thead").innerHTML = `
+                    <tr>
+                        <th>Book Name</th>
+                        <th>Borrow Date</th>
+                        <th>Due Date</th>
+                    </tr>`;
+                    displayBorrowedBooks(borrowedBooks);
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+
+            function displayBorrowedBooks(books){
+                const books_list=document.getElementById("booksList");
+                books_list.innerHTML='';
+
+                books.forEach(book => {
+                    const row = `<tr>
+                        <td>${book.book_name}</td>
+                        <td>${book.borrow_date}</td>
+                        <td>${book.due_date}</td>
+                        <td>
+                            <button class="renew-book">Renew Book</button>
+                        </td>
+                    </tr>`;
+                        books_list.innerHTML += row;
+                    });
             }
 
             // Load books when page loads
