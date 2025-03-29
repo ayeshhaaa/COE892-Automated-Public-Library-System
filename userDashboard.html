@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Automated Public Library System</title>
+        <style>
+            body {
+                background-color: white;
+            }
+            h2 {
+                text-align: center;
+                font-size: 30px;
+                margin-bottom: 10px;
+            }
+            h3 {
+                text-align: center;
+                font-size: 20px;
+                margin-bottom: 50px;
+            }
+            table {
+                width: 65%;
+                margin: 50px auto;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid black;
+                padding: 7px;
+            }
+            td:last-child {
+                position: absolute;
+                right: 10%;
+                border: none;
+                text-align: center;
+            }
+            .search-container {
+                position: absolute;
+                top: 11%;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-bottom: 20px;
+            }
+
+            .search-container form {
+                display: flex;
+                align-items: center;
+            }
+
+            .search-container input[type="text"] {
+                padding: 5px;
+                margin-right: 10px;
+                border-radius: 5px;
+                border: 1px solid #ccc;
+                width: 300px;
+            }
+            .button-container {
+                position: absolute;
+                top: 40px;
+                right: 20px;
+                display: flex;
+                gap: 10px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>Automated Public Library System</h2>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search Books">
+            <button onclick="searchBooks()">Search</button>
+        </div>
+
+        <div class="button-container">
+            <button class="view-my-books" onclick="viewMyBooks()">View My Books</button>
+            <button class="logout" onclick="logOut()">Log Out</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Author</th>
+                    <th>Genre</th>
+                    <th>Year</th>
+                </tr>
+            </thead>
+            <tbody id="booksList">
+
+            </tbody>
+        </table>
+
+        <script>
+            let allBooks = []; //storing all books globally to be able to use the search
+
+            function fetchBooks() {
+                fetch("http://127.0.0.1:8000/books/")
+                .then(response => response.json())
+                .then(data => {
+                    allBooks = data;
+                    displayBooks(allBooks);
+                })
+                .catch(error => {
+                    console.error('Error fetching book list:', error);
+                });
+            }
+
+            function displayBooks(books){
+                const books_list=document.getElementById("booksList");
+                books_list.innerHTML='';
+
+                books.forEach(book => {
+                    const row = `<tr>
+                        <td>${book.book_id}</td>
+                        <td>${book.book_name}</td>
+                        <td>${book.author}</td>
+                        <td>${book.genre}</td>
+                        <td>${book.year}</td>
+                        <td>
+                            <button class="borrow-book">Borrow Book</button>
+                        </td>
+                    </tr>`;
+                        books_list.innerHTML += row;
+                    });
+            }
+
+            function searchBooks() {
+                    const query = document.getElementById('searchInput').value.toLowerCase();
+                    if (!allBooks.length) return;
+                    const filteredBooks = allBooks.filter(book =>
+                        book.book_name.toLowerCase().includes(query) ||
+                        book.author.toLowerCase().includes(query) ||
+                        book.genre.toLowerCase().includes(query) ||
+                        book.year.toString().includes(query)
+                    );
+                    displayBooks(filteredBooks);
+            }
+
+            function logOut() {
+                sessionStorage.removeItem("username");
+                window.location.href = 'index.html';
+            }
+
+            // Load books when page loads
+            window.onload = function(){
+                fetchBooks();
+            };
+        </script>
+    </body>
+</html>
