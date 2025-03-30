@@ -130,6 +130,7 @@
                     } else { //user
                         alert("Login successful");
                         sessionStorage.setItem("username", username);
+                        sessionStorage.setItem("user_id", data.user_id);
                         window.location.href = `userDashboard.html?username=${username}`;
                     }
                 })
