@@ -29,7 +29,6 @@
             }
             td:last-child {
                 position: absolute;
-                right: 10%;
                 border: none;
                 text-align: center;
             }
@@ -78,17 +77,14 @@
         </div>
 
         <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Author</th>
-                    <th>Genre</th>
-                    <th>Year</th>
-                </tr>
-            </thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Year</th>
+            </tr>
             <tbody id="booksList">
-
             </tbody>
         </table>
 
@@ -112,7 +108,7 @@
                 books_list.innerHTML='';
 
                 //change table headers to match all books
-                document.querySelector("thead").innerHTML = `
+                document.querySelector("tr").innerHTML = `
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
@@ -129,7 +125,7 @@
                         <td>${book.genre}</td>
                         <td>${book.year}</td>
                         <td>
-                            <button class="borrow-book">Borrow Book</button>
+                            <button class="borrow-book" onclick="borrowBook(${book.book_id})">Borrow Book</button>
                         </td>
                     </tr>`;
                         books_list.innerHTML += row;
@@ -150,25 +146,18 @@
 
             function logOut() {
                 sessionStorage.removeItem("username");
+                sessionStorage.removeItem("user_id");
                 window.location.href = 'index.html';
             }
 
             async function viewMyBooks() {
-                const username = sessionStorage.getItem("username");
-
+                const user_id = sessionStorage.getItem("user_id");
                 try {
-                    const userResponse = await fetch(`http://127.0.0.1:8000/users/${username}`);
-                    const userData = await userResponse.json();
-                    const userId = userData.user_id;
-
-                    const booksResponse = await fetch(`http://127.0.0.1:8000/mybooks/${userId}`);
-                    if (!booksResponse.ok) {
-                        throw new Error("Failed to fetch borrowed books.");
-                    }
+                    const booksResponse = await fetch(`http://127.0.0.1:8000/mybooks/${user_id}`);
                     const borrowedBooks = await booksResponse.json();
 
                     //change table headers to match borrowed books
-                    document.querySelector("thead").innerHTML = `
+                    document.querySelector("tr").innerHTML = `
                     <tr>
                         <th>Book Name</th>
                         <th>Borrow Date</th>
@@ -190,7 +179,8 @@
                         <td>${book.borrow_date}</td>
                         <td>${book.due_date}</td>
                         <td>
-                            <button class="renew-book">Renew Book</button>
+                            <button class="renew-book" onclick="renewBook(${book.book_id})">Renew Book</button>
+                            <button class="return-book" onclick="returnBook(${book.book_id})">Return Book</button>
                         </td>
                     </tr>`;
                         books_list.innerHTML += row;
@@ -201,6 +191,108 @@
                 if (username) {
                     document.getElementById("userGreeting").textContent = `Welcome, ${username}!`;
                 }
+            }
+
+            function borrowBook(book_id){
+                const user_id = sessionStorage.getItem("user_id");
+
+                //check if book is available
+                fetch(`http://127.0.0.1:8000/available/${book_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.available) {
+                        //check if current user has already borrowed the book
+                            fetch(`http://127.0.0.1:8000/mybooks/${user_id}`)
+                            .then(response => response.json())
+                            .then(borrowedBooks => {
+                                const alreadyBorrowed = borrowedBooks.some(book => book.book_id === book_id);
+                                if (alreadyBorrowed) {
+                                    alert("You have already borrowed this book.");
+                                } else {
+                                    alert("Sorry, this book is currently unavailable.");
+                                }
+                            })
+                    } else {
+                        fetch(`http://127.0.0.1:8000/borrow/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                user_id: user_id,
+                                book_id: book_id
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                    throw new Error("Failed to borrow book");
+                            }
+                                return response.json();
+                            })
+                        .then(data => {
+                                alert(data.message);
+                                console.log(data);
+                        })
+                        .catch(error => {
+                            console.error("Failed to borrow book:", error);
+                            alert("You have already borrowed this book.");
+                        });
+                    }
+                })
+            }
+
+            function returnBook(book_id){
+                const user_id = sessionStorage.getItem("user_id");
+
+                fetch(`http://127.0.0.1:8000/return/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            user_id: user_id,
+                            book_id: book_id
+                        })
+                })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                        alert(data.message);
+                        console.log(data);
+                        viewMyBooks();
+                })
+                .catch(error => {
+                    console.error("Failed to return book:", error);
+                    alert("No active loan found for this book.");
+                });
+            }
+
+            function renewBook(book_id){
+                const user_id = sessionStorage.getItem("user_id");
+
+                fetch("http://127.0.0.1:8000/renew/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            user_id: user_id,
+                            book_id: book_id
+                        })
+                })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                        alert(data.message);
+                        console.log(data);
+                        viewMyBooks();
+                })
+                .catch(error => {
+                    console.error("Failed to renew book:", error);
+                    alert("No active loan found for this book.");
+                });
             }
 
             window.onload = function(){
