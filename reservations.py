@@ -155,13 +155,13 @@ async def renew_book(request: RenewRequest):
 async def get_my_books(user_id: int):
     async with aiosqlite.connect(DATABASE) as db:
         cursor = await db.execute("""
-            SELECT B.BookName, H.BorrowDate, H.DueDate 
+            SELECT H.BookID, B.BookName, H.BorrowDate, H.DueDate 
             FROM BorrowingHistory H
             JOIN Books B ON H.BookID = B.BookID
             WHERE H.UserID = ? AND H.ReturnDate IS NULL
         """, (user_id,))
         books = await cursor.fetchall()
-        return [{"book_name": row[0], "borrow_date": row[1], "due_date": row[2]} for row in books]
+        return [{"book_id": row[0], "book_name": row[1], "borrow_date": row[2], "due_date": row[3]} for row in books]
 
 #all users
 @app.get("/users/")
@@ -175,21 +175,6 @@ async def get_all_users():
             "username": user[1],
             "password": user[2]
         }]
-
-@app.get("/users/{username}")
-async def get_user_by_username(username: str):
-    async with aiosqlite.connect(DATABASE) as db:
-        cursor = await db.execute("SELECT UserID, UserName, Password FROM Users WHERE UserName = ?", (username,))
-        user = await cursor.fetchone()
-
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found.")
-
-        return {
-            "user_id": user[0],
-            "username": user[1],
-            "password": user[2]
-        }
 
 #User Login
 @app.post("/login/")
