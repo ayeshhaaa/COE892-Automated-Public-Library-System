@@ -8,8 +8,6 @@
             body {
                 background-color: white;
                 font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
             }
             h2 {
                 text-align: center;
@@ -22,18 +20,18 @@
                 margin-bottom: 20px;
             }
             table {
-                width: 85%;
+                width: 65%;
                 margin: 20px auto;
                 border-collapse: collapse;
             }
             th, td {
                 border: 1px solid black;
                 padding: 7px;
+                text-align: left;
             }
-            td:last-child {
-                position: absolute;
-                border: none;
-                text-align: center;
+            .action-buttons {
+                display: flex;
+                gap: 5px;
             }
             .search-container {
                 position: absolute;
@@ -42,12 +40,10 @@
                 transform: translateX(-50%);
                 margin-bottom: 20px;
             }
-
             .search-container form {
                 display: flex;
                 align-items: center;
             }
-
             .search-container input[type="text"] {
                 padding: 5px;
                 margin-right: 10px;
@@ -63,86 +59,112 @@
                 flex-direction: column;
                 gap: 10px;
             }
-            
-            /* Styles for recommendations section */
-            .section-heading {
-                text-align: center;
-                font-size: 24px;
-                margin-top: 30px;
-                margin-bottom: 10px;
-                color: #333;
-                background-color: #f8f8f8;
-                padding: 10px;
-                border-radius: 5px;
-            }
-            
             .tab-container {
                 display: flex;
                 justify-content: center;
-                margin: 10px 0;
+                margin: 20px 0;
             }
-            
             .tab-button {
-                padding: 8px 15px;
+                padding: 10px 20px;
                 margin: 0 5px;
-                border: none;
-                background-color: #f0f0f0;
                 cursor: pointer;
-                border-radius: 5px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 5px 5px 0 0;
             }
-            
             .tab-button.active {
                 background-color: #4CAF50;
                 color: white;
             }
-            
-            .recommendations-table {
+            .review-form {
+                width: 50%;
+                margin: 20px auto;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
                 background-color: #f9f9f9;
-                border: 1px solid #ddd;
             }
-            
-            .recommendations-table th {
-                background-color: #e9e9e9;
+            .review-form input, .review-form select {
+                width: 100%;
+                padding: 8px;
+                margin: 5px 0 15px;
+                box-sizing: border-box;
             }
-            
-            .all-books-table {
-                margin-top: 40px;
+            .review-form button {
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 15px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
             }
-            
+            .hidden {
+                display: none;
+            }
+            /* Recommendations specific styles */
+            .recommendations-section {
+                margin: 30px auto;
+                width: 90%;
+                background-color: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .recommendation-tabs {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+            .recommendation-tab {
+                padding: 8px 16px;
+                background-color: #e9ecef;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            .recommendation-tab.active {
+                background-color: #3498db;
+                color: white;
+            }
+            .reason-column {
+                font-size: 0.9em;
+                color: #495057;
+                font-style: italic;
+            }
             .loading {
                 text-align: center;
                 padding: 20px;
                 font-style: italic;
-                color: #666;
+                color: #6c757d;
             }
         </style>
     </head>
 
     <body>
         <h2>Automated Public Library System</h2>
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search Books">
-            <button onclick="searchBooks()">Search</button>
-        </div>
-
         <div class="button-container">
             <div id="userGreeting"></div>
             <button class="view-my-books" onclick="viewMyBooks()">View My Books</button>
-            <button class="view-all-books" onclick="viewAllBooks()">All Books</button>
             <button class="logout" onclick="logOut()">Log Out</button>
         </div>
 
-        <!-- Recommendations Section -->
-        <div id="recommendationsSection">
-            <h3 class="section-heading">Recommended For You</h3>
-            
-            <div class="tab-container">
-                <button class="tab-button active" onclick="showRecommendations('genre')">By Genre</button>
-                <button class="tab-button" onclick="showRecommendations('author')">By Author</button>
-                <button class="tab-button" onclick="showRecommendations('popular')">Popular</button>
+        <div class="tab-container">
+            <button class="tab-button active" onclick="showTab('booksTab')">Books</button>
+            <button class="tab-button" onclick="showTab('reviewsTab')">All Reviews</button>
+            <button class="tab-button" onclick="showTab('addReviewTab')">Add Review</button>
+            <button class="tab-button" onclick="showTab('recommendationsTab')">Recommendations</button>
+        </div>
+
+        <!-- Books Tab -->
+        <div id="booksTab" class="tab-content">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search Books">
+                <button onclick="searchBooks()">Search</button>
             </div>
-            
-            <table class="recommendations-table">
+
+            <table>
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -150,36 +172,240 @@
                         <th>Author</th>
                         <th>Genre</th>
                         <th>Year</th>
-                        <th>Recommendation Reason</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="recommendationsList">
-                    <tr><td colspan="6" class="loading">Loading recommendations...</td></tr>
-                </tbody>
+                <tbody id="booksList"></tbody>
             </table>
         </div>
-        
-        <!-- Main Books Section -->
-        <h3 id="mainTableHeading" class="section-heading">All Books</h3>
-        <table class="all-books-table">
-            <thead>
-                <tr id="mainTableHeaders">
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Author</th>
-                    <th>Genre</th>
-                    <th>Year</th>
-                </tr>
-            </thead>
-            <tbody id="booksList">
-                <tr><td colspan="5" class="loading">Loading books...</td></tr>
-            </tbody>
-        </table>
+
+        <!-- All Reviews Tab -->
+        <div id="reviewsTab" class="tab-content hidden">
+            <div class="search-container">
+                <input type="text" id="searchReviewInput" placeholder="Search Reviews">
+                <button onclick="searchReviews()">Search</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>User</th>
+                        <th>Rating</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewsList"></tbody>
+            </table>
+        </div>
+
+        <!-- Add Review Tab -->
+        <div id="addReviewTab" class="tab-content hidden">
+            <div class="review-form">
+                <h3>Add a Review</h3>
+                <label for="reviewBook">Book:</label>
+                <select id="reviewBook" required>
+                    <option value="">Select a book</option>
+                </select>
+
+                <label for="reviewRating">Rating (1-5):</label>
+                <input type="number" id="reviewRating" min="1" max="5" required>
+
+                <button onclick="submitReview()">Submit Review</button>
+            </div>
+        </div>
+
+        <!-- Recommendations Tab -->
+        <div id="recommendationsTab" class="tab-content hidden">
+            <div class="recommendations-section">
+                <div class="recommendation-tabs">
+                    <button class="recommendation-tab active" onclick="showRecommendations('genre')">For You</button>
+                    <button class="recommendation-tab" onclick="showRecommendations('author')">By Authors</button>
+                    <button class="recommendation-tab" onclick="showRecommendations('popular')">Popular</button>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Genre</th>
+                            <th>Year</th>
+                            <th>Why Recommended</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recommendationsList">
+                        <tr>
+                            <td colspan="7" class="loading">Select a recommendation type above</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <script>
-            let allBooks = []; //storing all books globally to be able to use the search
+            let allBooks = [];
+            let allReviews = [];
             let currentRecommendationType = 'genre';
-            let currentView = 'all'; // 'all' or 'my'
+
+            // Tab functionality
+            function showTab(tabId) {
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.add('hidden');
+                });
+                
+                // Show selected tab
+                document.getElementById(tabId).classList.remove('hidden');
+                
+                // Update active tab button
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Load data for the tab if needed
+                if (tabId === 'reviewsTab' && allReviews.length === 0) {
+                    fetchAllReviews();
+                } else if (tabId === 'addReviewTab') {
+                    populateBookDropdown();
+                } else if (tabId === 'recommendationsTab') {
+                    showRecommendations(currentRecommendationType);
+                }
+            }
+
+            // Fetch and display all reviews
+            async function fetchAllReviews() {
+                try {
+                    const response = await fetch("http://127.0.0.1:8000/reviews/");
+                    allReviews = await response.json();
+                    displayReviews(allReviews);
+                } catch (error) {
+                    console.error('Error fetching reviews:', error);
+                    alert('Failed to load reviews');
+                }
+            }
+
+            function displayReviews(reviews) {
+                const reviewsList = document.getElementById("reviewsList");
+                reviewsList.innerHTML = '';
+
+                reviews.forEach(review => {
+                    const row = `<tr>
+                        <td>${getBookName(review.book_id)}</td>
+                        <td>${review.username}</td>
+                        <td>${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</td>
+                        <td class="action-buttons">
+                            ${review.user_id == sessionStorage.getItem("user_id") ? 
+                                `<button onclick="deleteReview(${review.rating_id})">Delete</button>` : ''}
+                        </td>
+                    </tr>`;
+                    reviewsList.innerHTML += row;
+                });
+            }
+
+            function searchReviews() {
+                const query = document.getElementById('searchReviewInput').value.toLowerCase();
+                if (!allReviews.length) return;
+                
+                const filteredReviews = allReviews.filter(review => 
+                    review.username.toLowerCase().includes(query) ||
+                    getBookName(review.book_id).toLowerCase().includes(query) ||
+                    review.rating.toString().includes(query)
+                );
+                
+                displayReviews(filteredReviews);
+            }
+
+            // Populate book dropdown for review form
+            async function populateBookDropdown() {
+                const dropdown = document.getElementById("reviewBook");
+                dropdown.innerHTML = '<option value="">Select a book</option>';
+                
+                try {
+                    const response = await fetch("http://127.0.0.1:8000/books/");
+                    const books = await response.json();
+                    
+                    books.forEach(book => {
+                        const option = document.createElement("option");
+                        option.value = book.book_id;
+                        option.textContent = `${book.book_name} (${book.author})`;
+                        dropdown.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error fetching books:', error);
+                }
+            }
+
+            // Submit new review
+            async function submitReview() {
+                const bookId = document.getElementById("reviewBook").value;
+                const rating = document.getElementById("reviewRating").value;
+                const userId = sessionStorage.getItem("user_id");
+                
+                if (!bookId || !rating) {
+                    alert("Please select a book and provide a rating");
+                    return;
+                }
+                
+                try {
+                    const response = await fetch("http://127.0.0.1:8000/reviews/add/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            book_id: bookId,
+                            rating: rating
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(await response.text());
+                    }
+                    
+                    const result = await response.json();
+                    alert(result.message);
+                    document.getElementById("reviewBook").value = "";
+                    document.getElementById("reviewRating").value = "";
+                    
+                    // Refresh reviews list
+                    fetchAllReviews();
+                } catch (error) {
+                    console.error('Error submitting review:', error);
+                    alert(`Failed to submit review: ${error.message}`);
+                }
+            }
+
+            // Delete a review
+            async function deleteReview(reviewId) {
+                if (!confirm("Are you sure you want to delete this review?")) return;
+                
+                try {
+                    const response = await fetch(`http://127.0.0.1:8000/reviews/${reviewId}`, {
+                        method: "DELETE"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("Failed to delete review");
+                    }
+                    
+                    alert("Review deleted successfully");
+                    fetchAllReviews(); // Refresh the list
+                } catch (error) {
+                    console.error('Error deleting review:', error);
+                    alert("Failed to delete review");
+                }
+            }
+
+            // Helper function to get book name by ID
+            function getBookName(bookId) {
+                const book = allBooks.find(b => b.book_id == bookId);
+                return book ? book.book_name : "Unknown Book";
+            }
 
             function fetchBooks() {
                 fetch("http://127.0.0.1:8000/books/")
@@ -187,24 +413,15 @@
                 .then(data => {
                     allBooks = data;
                     displayBooks(allBooks);
-                    // Also load recommendations on initial page load
-                    fetchRecommendations(currentRecommendationType);
                 })
                 .catch(error => {
                     console.error('Error fetching book list:', error);
-                    document.getElementById("booksList").innerHTML = 
-                        '<tr><td colspan="5">Error loading books. Please try again later.</td></tr>';
                 });
             }
 
             function displayBooks(books){
-                const books_list = document.getElementById("booksList");
-                books_list.innerHTML = '';
-                
-                if (books.length === 0) {
-                    books_list.innerHTML = '<tr><td colspan="5">No books found.</td></tr>';
-                    return;
-                }
+                const books_list=document.getElementById("booksList");
+                books_list.innerHTML='';
 
                 books.forEach(book => {
                     const row = `<tr>
@@ -217,22 +434,20 @@
                             <button class="borrow-book" onclick="borrowBook(${book.book_id})">Borrow Book</button>
                         </td>
                     </tr>`;
-                    books_list.innerHTML += row;
-                });
+                        books_list.innerHTML += row;
+                    });
             }
 
             function searchBooks() {
-                if (currentView === 'my') return; // Don't search in my books view
-                
-                const query = document.getElementById('searchInput').value.toLowerCase();
-                if (!allBooks.length) return;
-                const filteredBooks = allBooks.filter(book =>
-                    book.book_name.toLowerCase().includes(query) ||
-                    book.author.toLowerCase().includes(query) ||
-                    book.genre.toLowerCase().includes(query) ||
-                    book.year.toString().includes(query)
-                );
-                displayBooks(filteredBooks);
+                    const query = document.getElementById('searchInput').value.toLowerCase();
+                    if (!allBooks.length) return;
+                    const filteredBooks = allBooks.filter(book =>
+                        book.book_name.toLowerCase().includes(query) ||
+                        book.author.toLowerCase().includes(query) ||
+                        book.genre.toLowerCase().includes(query) ||
+                        book.year.toString().includes(query)
+                    );
+                    displayBooks(filteredBooks);
             }
 
             function logOut() {
@@ -240,63 +455,29 @@
                 sessionStorage.removeItem("user_id");
                 window.location.href = 'index.html';
             }
-            
-            function viewAllBooks() {
-                currentView = 'all';
-                document.getElementById("mainTableHeading").textContent = "All Books";
-                document.getElementById("mainTableHeaders").innerHTML = `
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Author</th>
-                    <th>Genre</th>
-                    <th>Year</th>
-                `;
-                displayBooks(allBooks);
-                
-                // Show recommendations section
-                document.getElementById("recommendationsSection").style.display = "block";
-                
-                // Enable search
-                document.querySelector(".search-container").style.display = "flex";
-            }
 
             async function viewMyBooks() {
-                currentView = 'my';
-                document.getElementById("mainTableHeading").textContent = "My Borrowed Books";
-                document.getElementById("mainTableHeaders").innerHTML = `
-                    <th>Book Name</th>
-                    <th>Borrow Date</th>
-                    <th>Due Date</th>
-                    <th>Actions</th>
-                `;
-                
-                // Hide recommendations when viewing My Books
-                document.getElementById("recommendationsSection").style.display = "none";
-                
-                // Disable search for borrowed books
-                document.querySelector(".search-container").style.display = "none";
-                
                 const user_id = sessionStorage.getItem("user_id");
                 try {
                     const booksResponse = await fetch(`http://127.0.0.1:8000/mybooks/${user_id}`);
                     const borrowedBooks = await booksResponse.json();
+
+                    //change table headers to match borrowed books
+                    document.querySelector("tr").innerHTML = `
+                    <tr>
+                        <th>Book Name</th>
+                        <th>Borrow Date</th>
+                        <th>Due Date</th>
+                    </tr>`;
                     displayBorrowedBooks(borrowedBooks);
                 } catch (error) {
                     console.error("Error:", error);
-                    // Display a message if there's an error or no books
-                    const books_list = document.getElementById("booksList");
-                    books_list.innerHTML = '<tr><td colspan="4">No books currently borrowed or error loading books.</td></tr>';
                 }
             }
 
             function displayBorrowedBooks(books){
-                const books_list = document.getElementById("booksList");
-                books_list.innerHTML = '';
-                
-                if (books.length === 0) {
-                    books_list.innerHTML = '<tr><td colspan="4">You have not borrowed any books yet.</td></tr>';
-                    return;
-                }
+                const books_list=document.getElementById("booksList");
+                books_list.innerHTML='';
 
                 books.forEach(book => {
                     const row = `<tr>
@@ -308,10 +489,9 @@
                             <button class="return-book" onclick="returnBook(${book.book_id})">Return Book</button>
                         </td>
                     </tr>`;
-                    books_list.innerHTML += row;
-                });
+                        books_list.innerHTML += row;
+                    });
             }
-            
             function displayUsername() {
                 const username = sessionStorage.getItem("username");
                 if (username) {
@@ -358,10 +538,6 @@
                         .then(data => {
                                 alert(data.message);
                                 console.log(data);
-                                // Refresh recommendations after borrowing
-                                if (currentView === 'all') {
-                                    fetchRecommendations(currentRecommendationType);
-                                }
                         })
                         .catch(error => {
                             console.error("Failed to borrow book:", error);
@@ -390,7 +566,6 @@
                 .then(data => {
                         alert(data.message);
                         console.log(data);
-                        // Refresh the borrowed books list
                         viewMyBooks();
                 })
                 .catch(error => {
@@ -418,7 +593,6 @@
                 .then(data => {
                         alert(data.message);
                         console.log(data);
-                        // Refresh the borrowed books list
                         viewMyBooks();
                 })
                 .catch(error => {
@@ -426,23 +600,24 @@
                     alert("No active loan found for this book.");
                 });
             }
-            
+
             // Recommendations functions
             function showRecommendations(type) {
                 currentRecommendationType = type;
                 
                 // Update active tab button
-                const tabButtons = document.querySelectorAll('.tab-button');
+                const tabButtons = document.querySelectorAll('.recommendation-tab');
                 tabButtons.forEach(button => {
                     button.classList.remove('active');
-                    if (button.textContent.toLowerCase().includes(type)) {
+                    if (button.textContent.toLowerCase().includes(type) || 
+                        (type === 'genre' && button.textContent === 'For You')) {
                         button.classList.add('active');
                     }
                 });
                 
                 // Show loading message while fetching
                 document.getElementById("recommendationsList").innerHTML = 
-                    '<tr><td colspan="6" class="loading">Loading recommendations...</td></tr>';
+                    '<tr><td colspan="7" class="loading">Loading recommendations...</td></tr>';
                 
                 fetchRecommendations(type);
             }
@@ -457,13 +632,10 @@
                     
                     // Add appropriate parameters based on recommendation type
                     if (type === 'genre') {
-                        // For genre-based recommendations, we can get user's preferred genres
-                        // For now, let's use the default endpoint which already does this
+                        // Default behavior - uses user's borrowing history
                     } else if (type === 'author') {
-                        // We'll add a 'by-author' parameter to signal our backend
                         params.append('by', 'author');
                     } else if (type === 'popular') {
-                        // We'll set genres to blank to get popular books across all genres
                         params.append('popular', 'true');
                     }
                     
@@ -493,18 +665,18 @@
                 } catch (error) {
                     console.error("Error fetching recommendations:", error);
                     const recommendationsList = document.getElementById("recommendationsList");
-                    recommendationsList.innerHTML = `<tr><td colspan="6">Error loading recommendations: ${error.message}</td></tr>`;
+                    recommendationsList.innerHTML = `<tr><td colspan="7">Error loading recommendations: ${error.message}</td></tr>`;
                 }
             }
             
             // Helper function to generate recommendation reasons
             function getRecommendationReason(book, type) {
                 if (type === 'genre') {
-                    return `Based on your interest in ${book.genre} books`;
+                    return `Because you like ${book.genre} books`;
                 } else if (type === 'author') {
-                    return `More from author ${book.author} you might enjoy`;
+                    return `More from ${book.author}`;
                 } else if (type === 'popular') {
-                    return `Popular among library members`;
+                    return `Popular choice among readers`;
                 }
                 return 'Recommended for you';
             }
@@ -514,7 +686,7 @@
                 recommendationsList.innerHTML = '';
                 
                 if (books.length === 0) {
-                    recommendationsList.innerHTML = `<tr><td colspan="6">No recommendations available. Try borrowing more books!</td></tr>`;
+                    recommendationsList.innerHTML = `<tr><td colspan="7">No recommendations available. Try borrowing more books!</td></tr>`;
                     return;
                 }
                 
@@ -525,9 +697,9 @@
                         <td>${book.author}</td>
                         <td>${book.genre}</td>
                         <td>${book.year}</td>
-                        <td>${book.reason}</td>
+                        <td class="reason-column">${book.reason}</td>
                         <td>
-                            <button class="borrow-book" onclick="borrowBook(${book.book_id})">Borrow Book</button>
+                            <button class="borrow-book" onclick="borrowBook(${book.book_id})">Borrow</button>
                         </td>
                     </tr>`;
                     recommendationsList.innerHTML += row;
@@ -537,6 +709,8 @@
             window.onload = function(){
                 fetchBooks();
                 displayUsername();
+                // Initialize the books tab as active
+                document.getElementById('booksTab').classList.remove('hidden');
             };
         </script>
     </body>
