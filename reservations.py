@@ -36,9 +36,33 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+
 # -------------------------------
 # API Endpoints
 # -------------------------------
+
+@app.post("/register/")
+async def register(request: RegisterRequest):
+    async with aiosqlite.connect(DATABASE) as db:
+        # Check if the user already exists
+        cursor = await db.execute("SELECT UserName FROM Users WHERE UserName = ?", (request.username,))
+        existing_user = await cursor.fetchone()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already exists.")
+
+        # Insert new user into the database
+        await db.execute("""
+            INSERT INTO Users (UserName, Password) 
+            VALUES (?, ?)
+        """, (request.username, request.password))
+        await db.commit()
+
+        return {"message": "User registered successfully", "success": True}
+    
 @app.get("/books/")
 async def get_all_books():
     async with aiosqlite.connect(DATABASE) as db:
