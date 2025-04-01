@@ -51,6 +51,18 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
 
+class ReviewResponse(BaseModel):
+    rating_id: int
+    user_id: int
+    username: str
+    book_id: int
+    rating: float
+
+class AddReviewRequest(BaseModel):
+    user_id: int
+    book_id: int
+    rating: float
+
 class RecommendationRequest(BaseModel):
     user_id: int
     genre: Optional[str] = None
@@ -392,3 +404,106 @@ async def remove_book(book_id: int):
         await db.execute("DELETE FROM Books WHERE BookID = ?", (book_id,))
         await db.commit()
         return {"message": "Book removed successfully!"}
+    
+#see all reviews
+@app.get("/reviews/")
+async def get_all_reviews():
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("""
+            SELECT R.RatingID, R.UserID, U.UserName, R.BookID, R.Rating 
+            FROM Ratings R
+            JOIN Users U ON R.UserID = U.UserID
+        """)
+        reviews = await cursor.fetchall()
+        
+        return [{
+            "rating_id": row[0],
+            "user_id": row[1],
+            "username": row[2],
+            "book_id": row[3],
+            "rating": row[4]
+        } for row in reviews]
+
+#see specific reviews
+@app.get("/reviews/{book_id}")
+async def get_book_reviews(book_id: int):
+    async with aiosqlite.connect(DATABASE) as db:
+        # First check if book exists
+        cursor = await db.execute("SELECT BookID FROM Books WHERE BookID = ?", (book_id,))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Book not found")
+            
+        cursor = await db.execute("""
+            SELECT R.RatingID, R.UserID, U.UserName, R.BookID, R.Rating 
+            FROM Ratings R
+            JOIN Users U ON R.UserID = U.UserID
+            WHERE R.BookID = ?
+        """, (book_id,))
+        reviews = await cursor.fetchall()
+        
+        return [{
+            "rating_id": row[0],
+            "user_id": row[1],
+            "username": row[2],
+            "book_id": row[3],
+            "rating": row[4]
+        } for row in reviews]
+    
+#add reviews
+@app.post("/reviews/add/")
+async def add_review(request: AddReviewRequest):
+    # Validate rating is between 0 and 5 (or whatever your scale is)
+    if not (0 <= request.rating <= 5):
+        raise HTTPException(status_code=400, detail="Rating must be between 0 and 5")
+    
+    async with aiosqlite.connect(DATABASE) as db:
+        # Check if user exists
+        cursor = await db.execute("SELECT UserID FROM Users WHERE UserID = ?", (request.user_id,))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Check if book exists
+        cursor = await db.execute("SELECT BookID FROM Books WHERE BookID = ?", (request.book_id,))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Book not found")
+            
+        # Check if user already reviewed this book
+        cursor = await db.execute("""
+            SELECT RatingID FROM Ratings WHERE UserID = ? AND BookID = ?
+        """, (request.user_id, request.book_id))
+        if await cursor.fetchone():
+            raise HTTPException(status_code=400, detail="You have already reviewed this book")
+            
+        await db.execute("""
+            INSERT INTO Ratings (UserID, BookID, Rating)
+            VALUES (?, ?, ?)
+        """, (request.user_id, request.book_id, request.rating))
+        await db.commit()
+        
+        return {"message": "Review added successfully"}
+    
+@app.delete("/reviews/{review_id}")
+async def delete_review(review_id: int):
+    async with aiosqlite.connect(DATABASE) as db:
+        try:
+            # First check if review exists
+            cursor = await db.execute(
+                "SELECT UserID FROM Ratings WHERE RatingID = ?",
+                (review_id,)
+            )
+            review = await cursor.fetchone()
+            
+            if not review:
+                raise HTTPException(status_code=404, detail="Review not found")
+            
+            # Delete the review
+            await db.execute(
+                "DELETE FROM Ratings WHERE RatingID = ?",
+                (review_id,)
+            )
+            await db.commit()
+            
+            return {"message": "Review deleted successfully"}
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
