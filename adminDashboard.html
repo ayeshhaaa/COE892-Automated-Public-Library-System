@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Dashboard - Library System</title>
+        <style>
+            body {
+                background-color: white;
+                font-family: Arial, sans-serif;
+            }
+            h2 {
+                text-align: center;
+            }
+            .button-container {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .add-book-container {
+                text-align: center;
+                margin-top: 20px;
+            }
+            input, button {
+                padding: 10px;
+                margin: 5px;
+                border-radius: 5px;
+                border: 1px solid black;
+            }
+            table {
+                width: 80%;
+                margin: 20px auto;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid black;
+                padding: 8px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Admin Dashboard - Library Management</h2>
+        
+        <div class="button-container">
+            <button onclick="logOut()">Log Out</button>
+        </div>
+        
+        <div class="add-book-container">
+            <h3>Add a New Book</h3>
+            <input type="text" id="bookName" placeholder="Book Name">
+            <input type="text" id="author" placeholder="Author">
+            <input type="text" id="genre" placeholder="Genre">
+            <input type="number" id="year" placeholder="Year">
+            <button onclick="addBook()">Add Book</button>
+            <p id="successMessage" style="color: green; display: none;">Book successfully added!</p>
+        </div>        
+
+        <div class="user-management-container">
+            <h3>Manage Users</h3>
+        
+            <!-- Add User Form -->
+            <input type="text" id="newUsername" placeholder="Username">
+            <input type="password" id="newPassword" placeholder="Password">
+            <button onclick="addUser()">Add User</button>
+            <p id="userSuccessMessage" style="color: green; display: none;">User successfully added!</p>
+        
+            <!-- View Users Button -->
+            <button onclick="fetchUsers()">View All Users</button>
+        
+            <!-- User List Table -->
+            <table id="usersTable" style="display: none;">
+                <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Action</th>
+                </tr>
+                <tbody id="usersList"></tbody>
+            </table>
+        </div>
+        
+        
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Year</th>
+            </tr>
+            <tbody id="booksList"></tbody>
+        </table>
+
+        <script>
+            function fetchBooks() {
+                fetch("http://127.0.0.1:8000/books/")
+                .then(response => response.json())
+                .then(data => {
+                    const booksList = document.getElementById("booksList");
+                    booksList.innerHTML = "";
+                    data.forEach(book => {
+                        booksList.innerHTML += `
+                            <tr>
+                                <td>${book.book_id}</td>
+                                <td>${book.book_name}</td>
+                                <td>${book.author}</td>
+                                <td>${book.genre}</td>
+                                <td>${book.year}</td>
+                            </tr>`;
+                    });
+                })
+                .catch(error => console.error('Error fetching books:', error));
+            }
+
+            function addBook() {
+        const bookName = document.getElementById("bookName").value;
+        const author = document.getElementById("author").value;
+        const genre = document.getElementById("genre").value;
+        const year = document.getElementById("year").value;
+        const successMessage = document.getElementById("successMessage");
+
+        fetch("http://127.0.0.1:8000/admin/add_book/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                book_name: bookName,
+                author: author,
+                genre: genre,
+                year: parseInt(year)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            successMessage.style.display = "block"; // Show success message
+            setTimeout(() => {
+                successMessage.style.display = "none"; // Hide after 3 seconds
+            }, 3000);
+            fetchBooks();
+        })
+        .catch(error => console.error("Error adding book:", error));
+        }
+
+        function fetchUsers() {
+    console.log("Fetching users...");
+    fetch("http://127.0.0.1:8000/admin/users/")  // Ensure this is the correct endpoint
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Failed to fetch users");
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Fetched users:", data); // Log fetched data
+        const usersList = document.getElementById("usersList");
+        const usersTable = document.getElementById("usersTable");
+        usersList.innerHTML = "";  // Clear any previous data
+
+        if (data.length === 0) {
+            usersList.innerHTML = `<tr><td colspan="3">No users found.</td></tr>`;
+        } else {
+            data.forEach(user => {
+                usersList.innerHTML += `
+                    <tr>
+                        <td>${user.user_id}</td>
+                        <td>${user.username}</td>
+                        <td><button onclick="removeUser(${user.user_id})">Remove</button></td>
+                    </tr>`;
+            });
+        }
+
+        usersTable.style.display = "block";  // Show the table after populating it
+    })
+    .catch(error => {
+        console.error("Error fetching users:", error);
+        alert("There was an error fetching the users.");
+    });
+}
+
+    function addUser() {
+        const username = document.getElementById("newUsername").value;
+        const password = document.getElementById("newPassword").value;
+        const userSuccessMessage = document.getElementById("userSuccessMessage");
+
+        fetch("http://127.0.0.1:8000/admin/add_user/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username, password: password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            userSuccessMessage.style.display = "block";
+            setTimeout(() => userSuccessMessage.style.display = "none", 3000);
+            fetchUsers();
+        })
+        .catch(error => console.error("Error adding user:", error));
+    }
+
+    function removeUser(user_id) {
+        if (!confirm("Are you sure you want to remove this user?")) return;
+
+        fetch(`http://127.0.0.1:8000/admin/remove_user/${user_id}`, {
+            method: "DELETE",
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            fetchUsers();
+        })
+        .catch(error => console.error("Error removing user:", error));
+    }
+
+    window.onload = function() {
+        fetchBooks();
+        fetchUsers();
+    };
+
+            function logOut() {
+                sessionStorage.removeItem("admin");
+                window.location.href = "index.html";
+            }
+
+            window.onload = fetchBooks;
+        </script>
+    </body>
+</html>
