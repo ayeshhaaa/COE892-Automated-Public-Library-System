@@ -276,3 +276,16 @@ async def remove_user(user_id: int):
         await db.execute("DELETE FROM Users WHERE UserID = ?", (user_id,))
         await db.commit()
         return {"message": "User removed successfully!"}
+
+# Route to remove a book
+@app.delete("/admin/remove_book/{book_id}")
+async def remove_book(book_id: int):
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT * FROM Books WHERE BookID = ?", (book_id,))
+        book = await cursor.fetchone()
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found.")
+
+        await db.execute("DELETE FROM Books WHERE BookID = ?", (book_id,))
+        await db.commit()
+        return {"message": "Book removed successfully!"}
