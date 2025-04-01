@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+from typing import List, Optional
 
 DATABASE = "Library.db"
 
@@ -50,6 +51,10 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
 
+class RecommendationRequest(BaseModel):
+    user_id: int
+    genre: Optional[str] = None
+    limit: Optional[int] = 5
 
 # -------------------------------
 # API Endpoints
@@ -72,6 +77,104 @@ async def register(request: RegisterRequest):
         await db.commit()
 
         return {"message": "User registered successfully", "success": True}
+    
+@app.get("/recommendations/{user_id}")
+async def get_recommendations(user_id: int, genre: Optional[str] = None, limit: int = 5):
+    """
+    Get book recommendations based on user's borrowing history and optionally filtered by genre.
+    If genre is provided, it will filter recommendations by that genre.
+    Limit controls the maximum number of recommendations returned.
+    """
+    async with aiosqlite.connect(DATABASE) as db:
+        # First check if user exists
+        cursor = await db.execute("SELECT UserID FROM Users WHERE UserID = ?", (user_id,))
+        user = await cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        
+        # Get genres the user has borrowed in the past
+        cursor = await db.execute("""
+            SELECT DISTINCT B.Genre
+            FROM BorrowingHistory H
+            JOIN Books B ON H.BookID = B.BookID
+            WHERE H.UserID = ?
+        """, (user_id,))
+        preferred_genres = [row[0] for row in await cursor.fetchall()]
+        
+        # If user has no history, recommend popular books
+        if not preferred_genres:
+            query = """
+                SELECT B.BookID, B.BookName, B.Author, B.Genre, B.Year, COUNT(*) as popularity
+                FROM Books B
+                JOIN BorrowingHistory H ON B.BookID = H.BookID
+            """
+            params = []
+            
+            if genre:
+                query += " WHERE B.Genre = ?"
+                params.append(genre)
+                
+            query += " GROUP BY B.BookID ORDER BY popularity DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor = await db.execute(query, params)
+        else:
+            # Get books in user's preferred genres that they haven't borrowed
+            query = """
+                SELECT B.BookID, B.BookName, B.Author, B.Genre, B.Year
+                FROM Books B
+                WHERE B.BookID NOT IN (
+                    SELECT BookID FROM BorrowingHistory WHERE UserID = ?
+                )
+            """
+            params = [user_id]
+            
+            if genre:
+                query += " AND B.Genre = ?"
+                params.append(genre)
+            elif preferred_genres:
+                placeholders = ','.join(['?' for _ in preferred_genres])
+                query += f" AND B.Genre IN ({placeholders})"
+                params.extend(preferred_genres)
+                
+            query += " LIMIT ?"
+            params.append(limit)
+            
+            cursor = await db.execute(query, params)
+            
+        books = await cursor.fetchall()
+        
+        if not books:
+            # Fallback to general recommendations if no matches
+            query = "SELECT BookID, BookName, Author, Genre, Year FROM Books"
+            params = []
+            
+            if genre:
+                query += " WHERE Genre = ?"
+                params.append(genre)
+                
+            query += " LIMIT ?"
+            params.append(limit)
+            
+            cursor = await db.execute(query, params)
+            books = await cursor.fetchall()
+        
+        return [{
+            "book_id": row[0],
+            "book_name": row[1],
+            "author": row[2],
+            "genre": row[3],
+            "year": row[4]
+        } for row in books]
+
+# Alternative endpoint that uses POST and the Pydantic model
+@app.post("/recommendations/")
+async def post_recommendations(request: RecommendationRequest):
+    return await get_recommendations(
+        user_id=request.user_id,
+        genre=request.genre,
+        limit=request.limit
+    )
     
 @app.get("/books/")
 async def get_all_books():
