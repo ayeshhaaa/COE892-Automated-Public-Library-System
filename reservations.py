@@ -35,6 +35,16 @@ class RenewRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    
+class AddBookRequest(BaseModel):
+    book_name: str
+    author: str
+    genre: str
+    year: int
+
+class UserRequest(BaseModel):
+    username: str
+    password: str
 
 class RegisterRequest(BaseModel):
     username: str
@@ -210,9 +220,59 @@ async def login(request: LoginRequest):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid username or password.")
 
-        actualPassword = user[2] #password from db
-        #compare passwords
+        actualPassword = user[2]  # Password from database
         if actualPassword != request.password:
             raise HTTPException(status_code=401, detail="Invalid username or password.")
 
-        return {"message": "Login successful", "user_id": user[0]}
+        # Check if the user is an admin
+        is_admin = request.username == "admin" and request.password == "password"
+
+        return {
+            "message": "Login successful",
+            "user_id": user[0],
+            "isAdmin": is_admin
+        }
+
+#admin functions    
+@app.post("/admin/add_book/")
+async def add_book(request: AddBookRequest):
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT * FROM Books WHERE BookName = ?", (request.book_name,))
+        book = await cursor.fetchone()
+        if book:
+            raise HTTPException(status_code=400, detail="Book already exists.")
+
+        await db.execute("""
+            INSERT INTO Books (BookName, Author, Genre, Year) 
+            VALUES (?, ?, ?, ?)
+        """, (request.book_name, request.author, request.genre, request.year))
+        await db.commit()
+
+# View all users
+@app.get("/admin/users/")
+async def get_all_users():
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT UserID, UserName FROM Users")
+        users = await cursor.fetchall()
+        return [{"user_id": user[0], "username": user[1]} for user in users]
+
+# Add a new user
+@app.post("/admin/add_user/")
+async def add_user(request: UserRequest):
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute("INSERT INTO Users (UserName, Password) VALUES (?, ?)", (request.username, request.password))
+        await db.commit()
+        return {"message": "User added successfully!"}
+
+# Remove a user
+@app.delete("/admin/remove_user/{user_id}")
+async def remove_user(user_id: int):
+    async with aiosqlite.connect(DATABASE) as db:
+        cursor = await db.execute("SELECT * FROM Users WHERE UserID = ?", (user_id,))
+        user = await cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        await db.execute("DELETE FROM Users WHERE UserID = ?", (user_id,))
+        await db.commit()
+        return {"message": "User removed successfully!"}
