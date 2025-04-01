@@ -96,24 +96,25 @@
 
         <script>
             function fetchBooks() {
-                fetch("http://127.0.0.1:8000/books/")
-                .then(response => response.json())
-                .then(data => {
-                    const booksList = document.getElementById("booksList");
-                    booksList.innerHTML = "";
-                    data.forEach(book => {
-                        booksList.innerHTML += `
-                            <tr>
-                                <td>${book.book_id}</td>
-                                <td>${book.book_name}</td>
-                                <td>${book.author}</td>
-                                <td>${book.genre}</td>
-                                <td>${book.year}</td>
-                            </tr>`;
-                    });
-                })
-                .catch(error => console.error('Error fetching books:', error));
-            }
+    fetch("http://127.0.0.1:8000/books/")
+    .then(response => response.json())
+    .then(data => {
+        const booksList = document.getElementById("booksList");
+        booksList.innerHTML = "";
+        data.forEach(book => {
+            booksList.innerHTML += `
+                <tr>
+                    <td>${book.book_id}</td>
+                    <td>${book.book_name}</td>
+                    <td>${book.author}</td>
+                    <td>${book.genre}</td>
+                    <td>${book.year}</td>
+                    <td><button onclick="removeBook(${book.book_id})">Remove</button></td>
+                </tr>`;
+        });
+    })
+    .catch(error => console.error('Error fetching books:', error));
+}
 
             function addBook() {
         const bookName = document.getElementById("bookName").value;
@@ -213,6 +214,20 @@
         })
         .catch(error => console.error("Error removing user:", error));
     }
+
+    function removeBook(book_id) {
+    if (!confirm("Are you sure you want to remove this book?")) return;
+
+    fetch(`http://127.0.0.1:8000/admin/remove_book/${book_id}`, {
+        method: "DELETE",
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);  // Show confirmation message
+        fetchBooks();  // Refresh the book list
+    })
+    .catch(error => console.error("Error removing book:", error));
+}
 
     window.onload = function() {
         fetchBooks();
