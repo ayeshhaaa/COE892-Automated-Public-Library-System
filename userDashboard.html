@@ -34,22 +34,17 @@
                 gap: 5px;
             }
             .search-container {
-                position: absolute;
-                top: 11%;
-                left: 50%;
-                transform: translateX(-50%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
                 margin-bottom: 20px;
             }
-            .search-container form {
-                display: flex;
-                align-items: center;
-            }
             .search-container input[type="text"] {
-                padding: 5px;
-                margin-right: 10px;
-                border-radius: 5px;
-                border: 1px solid #ccc;
+                padding: 8px;
                 width: 300px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                margin-right: 10px;
             }
             .button-container {
                 position: absolute;
@@ -147,6 +142,7 @@
         <div class="button-container">
             <div id="userGreeting"></div>
             <button class="view-my-books" onclick="viewMyBooks()">View My Books</button>
+            <button class="view-all-books" onclick="viewAllBooks()">All Books</button>
             <button class="logout" onclick="logOut()">Log Out</button>
         </div>
 
@@ -233,7 +229,7 @@
                             <th>Genre</th>
                             <th>Year</th>
                             <th>Why Recommended</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="recommendationsList">
@@ -447,6 +443,16 @@
                         book.genre.toLowerCase().includes(query) ||
                         book.year.toString().includes(query)
                     );
+                    //change table headers
+                    document.querySelector("tr").innerHTML = `
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Author</th>
+                        <th>Genre</th>
+                        <th>Year</th>
+                        <th>Actions</th>
+                    </tr>`;
                     displayBooks(filteredBooks);
             }
 
@@ -456,18 +462,34 @@
                 window.location.href = 'index.html';
             }
 
+            function viewAllBooks() {
+                fetchBooks()
+                //change table headers
+                    document.querySelector("tr").innerHTML = `
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Author</th>
+                        <th>Genre</th>
+                        <th>Year</th>
+                        <th>Actions</th>
+                    </tr>`;
+                displayBooks(allBooks);
+            }
+
             async function viewMyBooks() {
                 const user_id = sessionStorage.getItem("user_id");
                 try {
                     const booksResponse = await fetch(`http://127.0.0.1:8000/mybooks/${user_id}`);
                     const borrowedBooks = await booksResponse.json();
 
-                    //change table headers to match borrowed books
+                    //change table headers
                     document.querySelector("tr").innerHTML = `
                     <tr>
                         <th>Book Name</th>
                         <th>Borrow Date</th>
                         <th>Due Date</th>
+                        <th>Actions</th>
                     </tr>`;
                     displayBorrowedBooks(borrowedBooks);
                 } catch (error) {
