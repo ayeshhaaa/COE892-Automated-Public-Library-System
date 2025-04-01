@@ -108,6 +108,13 @@
             .all-books-table {
                 margin-top: 40px;
             }
+            
+            .loading {
+                text-align: center;
+                padding: 20px;
+                font-style: italic;
+                color: #666;
+            }
         </style>
     </head>
 
@@ -147,7 +154,7 @@
                     </tr>
                 </thead>
                 <tbody id="recommendationsList">
-                    <!-- Recommendations will be populated here -->
+                    <tr><td colspan="6" class="loading">Loading recommendations...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -165,7 +172,7 @@
                 </tr>
             </thead>
             <tbody id="booksList">
-                <!-- Books will be populated here -->
+                <tr><td colspan="5" class="loading">Loading books...</td></tr>
             </tbody>
         </table>
 
@@ -185,12 +192,19 @@
                 })
                 .catch(error => {
                     console.error('Error fetching book list:', error);
+                    document.getElementById("booksList").innerHTML = 
+                        '<tr><td colspan="5">Error loading books. Please try again later.</td></tr>';
                 });
             }
 
             function displayBooks(books){
                 const books_list = document.getElementById("booksList");
                 books_list.innerHTML = '';
+                
+                if (books.length === 0) {
+                    books_list.innerHTML = '<tr><td colspan="5">No books found.</td></tr>';
+                    return;
+                }
 
                 books.forEach(book => {
                     const row = `<tr>
@@ -426,30 +440,73 @@
                     }
                 });
                 
+                // Show loading message while fetching
+                document.getElementById("recommendationsList").innerHTML = 
+                    '<tr><td colspan="6" class="loading">Loading recommendations...</td></tr>';
+                
                 fetchRecommendations(type);
             }
             
             async function fetchRecommendations(type) {
                 const user_id = sessionStorage.getItem("user_id");
+                if (!user_id) return;
                 
                 try {
-                    // In a real application, this would be an API endpoint
-                    // For demonstration, we'll simulate with local data
+                    let endpoint = `http://127.0.0.1:8000/recommendations/${user_id}`;
+                    let params = new URLSearchParams();
                     
-                    let recommendedBooks = [];
-                    
+                    // Add appropriate parameters based on recommendation type
                     if (type === 'genre') {
-                        recommendedBooks = await simulateGenreRecommendations(user_id);
+                        // For genre-based recommendations, we can get user's preferred genres
+                        // For now, let's use the default endpoint which already does this
                     } else if (type === 'author') {
-                        recommendedBooks = await simulateAuthorRecommendations(user_id);
+                        // We'll add a 'by-author' parameter to signal our backend
+                        params.append('by', 'author');
                     } else if (type === 'popular') {
-                        recommendedBooks = await simulatePopularRecommendations();
+                        // We'll set genres to blank to get popular books across all genres
+                        params.append('popular', 'true');
                     }
                     
-                    displayRecommendations(recommendedBooks);
+                    // Set limit
+                    params.append('limit', '5');
+                    
+                    // Attach params to endpoint if we have any
+                    if (params.toString()) {
+                        endpoint += '?' + params.toString();
+                    }
+                    
+                    const response = await fetch(endpoint);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    const books = await response.json();
+                    
+                    // Add recommendation reasons based on the type
+                    const booksWithReasons = books.map(book => ({
+                        ...book,
+                        reason: getRecommendationReason(book, type)
+                    }));
+                    
+                    displayRecommendations(booksWithReasons);
                 } catch (error) {
                     console.error("Error fetching recommendations:", error);
+                    const recommendationsList = document.getElementById("recommendationsList");
+                    recommendationsList.innerHTML = `<tr><td colspan="6">Error loading recommendations: ${error.message}</td></tr>`;
                 }
+            }
+            
+            // Helper function to generate recommendation reasons
+            function getRecommendationReason(book, type) {
+                if (type === 'genre') {
+                    return `Based on your interest in ${book.genre} books`;
+                } else if (type === 'author') {
+                    return `More from author ${book.author} you might enjoy`;
+                } else if (type === 'popular') {
+                    return `Popular among library members`;
+                }
+                return 'Recommended for you';
             }
             
             function displayRecommendations(books) {
@@ -475,37 +532,6 @@
                     </tr>`;
                     recommendationsList.innerHTML += row;
                 });
-            }
-            
-            // Simulated recommendation functions
-            async function simulateGenreRecommendations(user_id) {
-                return allBooks
-                    .filter((book, index) => index % 5 === 0)
-                    .slice(0, 3)
-                    .map(book => ({
-                        ...book,
-                        reason: `Based on your interest in ${book.genre} books`
-                    }));
-            }
-            
-            async function simulateAuthorRecommendations(user_id) {
-                return allBooks
-                    .filter((book, index) => index % 7 === 0)
-                    .slice(0, 3)
-                    .map(book => ({
-                        ...book,
-                        reason: `More from author ${book.author} you might enjoy`
-                    }));
-            }
-            
-            async function simulatePopularRecommendations() {
-                return allBooks
-                    .filter((book, index) => index % 3 === 0)
-                    .slice(0, 3)
-                    .map(book => ({
-                        ...book,
-                        reason: `Popular among library members`
-                    }));
             }
 
             window.onload = function(){
